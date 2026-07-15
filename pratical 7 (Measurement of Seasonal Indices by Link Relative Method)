@@ -1,0 +1,75 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+path = "Symphony-Data.csv"
+df = pd.read_csv(path)
+
+df = df.drop(['OPEN', 'HIGH', 'LOW', 'VOLUME', 'CHANGE(%)'], axis=1)
+
+df['DATE'] = pd.to_datetime(df['DATE'], format="%d-%b-%y")
+
+df = df.sort_values(by='DATE', ascending=True)
+
+df['Year'] = df['DATE'].dt.year
+df['Month'] = df['DATE'].dt.month
+
+df = df.groupby(['Month', 'Year'])['PRICE'].mean().unstack()
+
+df['Link_Relative_Y2'] = df[2020] / df[2019]
+df['Link_Relative_Y3'] = df[2021] / df[2020]
+df['Link_Relative_Y4'] = df[2022] / df[2021]
+df['Link_Relative_Y5'] = df[2023] / df[2022]
+df['Link_Relative_Y6'] = df[2024] / df[2023]
+
+df['Average_Link_Relative'] = df[['Link_Relative_Y2', 'Link_Relative_Y3',
+                                  'Link_Relative_Y4', 'Link_Relative_Y5',
+                                  'Link_Relative_Y6']].mean(axis=1)
+
+seasonal_indices = df['Average_Link_Relative']
+seasonal_indices /= seasonal_indices.sum()
+seasonal_indices *= 12
+
+df['Deseasonalized_Year1'] = df[2019] / seasonal_indices
+df['Deseasonalized_Year2'] = df[2020] / seasonal_indices
+df['Deseasonalized_Year3'] = df[2021] / seasonal_indices
+df['Deseasonalized_Year4'] = df[2022] / seasonal_indices
+df['Deseasonalized_Year5'] = df[2023] / seasonal_indices
+df['Deseasonalized_Year6'] = df[2024] / seasonal_indices
+
+plt.figure(figsize=(14, 8))
+
+plt.subplot(3, 1, 1)
+plt.plot(df.index, df[2019], label='2019', marker='o')
+plt.plot(df.index, df[2020], label='2020', marker='o')
+plt.plot(df.index, df[2021], label='2021', marker='o')
+plt.plot(df.index, df[2022], label='2022', marker='o')
+plt.plot(df.index, df[2023], label='2023', marker='o')
+plt.plot(df.index, df[2024], label='2024', marker='o')
+plt.title('Original Data')
+plt.xlabel('Month')
+plt.ylabel('Stock Price (Rs.)')
+plt.legend(loc='upper right')
+
+plt.subplot(3, 1, 2)
+plt.plot(df.index, seasonal_indices, label='SeasonalIndex', marker='o', color='orange')
+plt.title('Seasonal Indices')
+plt.xlabel('Month')
+plt.ylabel('Index')
+plt.legend()
+
+plt.subplot(3, 1, 3)
+plt.plot(df.index, df['Deseasonalized_Year1'], label='2019', marker='o')
+plt.plot(df.index, df['Deseasonalized_Year2'], label='2020', marker='o')
+plt.plot(df.index, df['Deseasonalized_Year3'], label='2021', marker='o')
+plt.plot(df.index, df['Deseasonalized_Year4'], label='2022', marker='o')
+plt.plot(df.index, df['Deseasonalized_Year5'], label='2023', marker='o')
+plt.plot(df.index, df['Deseasonalized_Year6'], label='2024', marker='o')
+plt.title('Deseasonalized Data')
+plt.xlabel('Month')
+plt.ylabel('Deseasonalized Sales')
+plt.legend(loc='upper right')
+
+plt.tight_layout()
+plt.show()
+
