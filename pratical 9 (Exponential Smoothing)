@@ -1,0 +1,25 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
+path = "Symphony-Data.csv"
+df = pd.read_csv(path)
+
+df = df.sort_values(by='DATE', ascending=True)
+
+model = ExponentialSmoothing(df['PRICE'], trend=None, seasonal='add', seasonal_periods=365)
+
+fit = model.fit()
+
+forecast = fit.forecast(365)
+
+plt.figure(figsize=(10, 6))
+plt.plot(df['PRICE'], label='Original')
+plt.plot(fit.fittedvalues, label='Fitted', linestyle='--')
+plt.plot(forecast, label='Forecast', linestyle='--')
+plt.legend()
+plt.show()
+
+print(forecast)
+
