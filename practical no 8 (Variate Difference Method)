@@ -1,0 +1,35 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+path = "Symphony-Data.csv"
+df = pd.read_csv(path)
+
+df = df.drop(['OPEN', 'HIGH', 'LOW', 'VOLUME', 'CHANGE(%)'], axis=1)
+
+df['DATE'] = pd.to_datetime(df['DATE'], format="%d-%b-%y")
+
+df = df.sort_values(by='DATE', ascending=True)
+
+
+price_array = df['PRICE'].to_numpy()
+
+differences = np.diff(price_array)
+
+mean_diff = np.mean(differences)
+
+var_diff = np.var(differences)
+
+var_random = var_diff / 2
+
+print(f"Mean of Differences: {mean_diff}")
+print(f"Variance of Differences: {var_diff}")
+print(f"Variance of Random Components: {var_random}")
+
+
+plt.plot(differences, marker='o')
+plt.title('Differences Between Successive Observations')
+plt.xlabel('Time')
+plt.ylabel('Difference Value')
+plt.grid(True)
+plt.show()
