@@ -1,0 +1,79 @@
+path2 = "taq-cat-t-jan042010.txt"
+
+import numpy as np
+import pandas as pd
+from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+stock_price = pd.read_csv(path2, sep=r'\s+')
+
+stock_price['Datetime'] = pd.to_datetime(
+    stock_price['date'].astype(str) + ' ' +
+    stock_price['hour'].astype(str) + ':' +
+    stock_price['minute'].astype(str) + ':' +
+    stock_price['second'].astype(str))
+
+stock_price.drop(['date', 'hour', 'minute', 'second'], axis=1, inplace=True)
+
+stock_price['Datetime'] = pd.to_datetime(stock_price['Datetime'])
+stock_price.sort_values('Datetime', inplace=True)
+
+x_data = stock_price['Datetime']
+y_data = stock_price['price']
+
+stock_price.set_index('Datetime', inplace=True)
+
+x_neumerical = (stock_price.index - stock_price.index.min()).total_seconds()
+
+plt.figure(figsize=(12, 6))
+plt.plot(x_data, y_data, label='Stock Price')
+plt.title('Stock Price Over Time')
+plt.xlabel('Date')
+plt.ylabel('Value')
+plt.legend()
+plt.show()
+
+def gompertz_curve(t, a, b, c):
+    return a * np.exp(b * np.exp(-c * t))
+
+a_guess = y_data[0]
+
+if len(x_data) % 2 == 0:
+    central_index = len(x_data) // 2 - 1
+    centre_value_of_x = x_data[central_index]
+else:
+    central_index = len(x_data) // 2
+    centre_value_of_x = x_data[central_index]
+
+timestamp_obj = pd.Timestamp(centre_value_of_x)
+c_guess = 1 / timestamp_obj.year
+b_guess = np.exp(c_guess * timestamp_obj.year)
+
+print(f"Initial Guess values of constants a, b, and c are {a_guess:.2f}, {b_guess:.2f}, {c_guess:.4f} respectively.")
+
+p0 = (a_guess, b_guess, c_guess)
+popt, pcov = curve_fit(gompertz_curve, x_neumerical, y_data, p0=p0, maxfev=8000)
+
+print(f"Optimized values of constants a, b, and c for best fit are", popt, "respectively.")
+print("**************************************************************************************")
+
+print("Covariance matrix of the parameters a, b and c is:\n", pcov)
+print("**************************************************************************************")
+
+sns.heatmap(pcov, cmap='coolwarm', annot=True)
+
+y_pred = gompertz_curve(x_neumerical, *popt)
+
+plt.figure(figsize=(12, 6))
+plt.plot(x_data, y_data, label='Original Data')
+plt.plot(x_data, y_pred, '--', label='Fitted Curve')
+plt.title('Stock Price and Fitted Gompertz Curve')
+plt.xlabel('Date')
+plt.ylabel('Stock Price')
+plt.legend()
+plt.show()
+
+r_squared = r2_score(y_data, y_pred)
+print("Coefficient of Determination =", r_squared)
