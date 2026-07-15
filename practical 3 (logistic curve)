@@ -1,0 +1,69 @@
+path3 = "microbial_growth_curve.csv"
+
+import numpy as np
+import pandas as pd
+from scipy.optimize import curve_fit
+from sklearn.metrics import r2_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+microbes_growth = pd.read_csv(path3)
+microbes_growth.head()
+
+x_data = microbes_growth['t [h]']
+y_data = microbes_growth['microbes (g)']
+
+microbes_growth['Time'] = (microbes_growth['t [h]'] - microbes_growth['t [h]'].min())
+x_neumerical = microbes_growth['Time']
+
+plt.figure(figsize=(12, 6))
+plt.plot(x_data, y_data, label='Microbes growth')
+plt.title('Microbes Growth Rate')
+plt.xlabel('time')
+plt.ylabel("Growth (g)")
+plt.legend()
+plt.show()
+
+def logistic_curve(t, k, r, t0):
+    return k / (1 + np.exp(-r * (t - t0)))
+
+k_guess = y_data[0]
+
+if len(x_data) % 2 == 0:
+    central_index = len(x_data) // 2 - 1
+    centre_value_of_x = x_data[central_index]
+else:
+    central_index = len(x_data) // 2
+    centre_value_of_x = x_data[central_index]
+
+timestamp_obj = pd.Timestamp(centre_value_of_x)
+t0_guess = timestamp_obj.year
+
+r_guess = 1 / t0_guess
+
+print(f"Initial Guess values of constants k, r, and t0 are {k_guess:.2f}, {r_guess:.4f}, {t0_guess:.0f} respectively.")
+
+p0 = (k_guess, r_guess, t0_guess)
+popt, pcov = curve_fit(logistic_curve, x_neumerical, y_data, p0=p0, maxfev=10000)
+
+print(f"Optimized values of constants k, r, and t0 for best fit are", popt, "respectively.")
+print("**************************************************************************************")
+
+print("Covariance matrix of the parameters k, r and t0 is:\n", pcov)
+print("**************************************************************************************")
+
+sns.heatmap(pcov, cmap='coolwarm', annot=True)
+
+y_pred = logistic_curve(x_neumerical, *popt)
+
+plt.figure(figsize=(12, 6))
+plt.plot(x_data, y_data, label='Original Data')
+plt.plot(x_data, y_pred, '--', label='Fitted Curve')
+plt.title('Microbes Growth Curve and Fitted Logistic Curve')
+plt.xlabel('time (in hours)')
+plt.ylabel('Growth (g)')
+plt.legend()
+plt.show()
+
+r_squared = r2_score(y_data, y_pred)
+print("Coefficient of Determination =", r_squared)
